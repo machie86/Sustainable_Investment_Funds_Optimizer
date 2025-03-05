@@ -13,7 +13,7 @@ st.title("📈 SIP Optimizer Apps")
 st.write("Analyze and Optimize your Sustainable Investment Portfolio.")
 
 # Input ETF ticker list
-ticker_input = st.text_input("Input your ETF tickers (separate with commas, min 1, max 5)", "ESGU, SUSA, ESG, VSGX")
+ticker_input = st.text_input("Enter your ETF tickers (separate with commas, min 1, max 5)", "ESGU, SUSA, ESG, VSGX")
 tickers = [ticker.strip().upper() for ticker in ticker_input.split(",") if ticker.strip()]
 
 # Validate ticker count
@@ -21,7 +21,7 @@ if len(tickers) < 1 or len(tickers) > 5:
     st.error("Please enter between 1 and 5 ETFs.")
 else:
     # Input investment amount
-    portfolio_value = st.number_input("Input your investment amount (USD)", min_value=1000, value=10000, step=500)
+    portfolio_value = st.number_input("Enter your investment amount (USD)", min_value=1000, value=10000, step=500)
 
     # Input start and end dates
     start_date = st.date_input("Select Start Date", value=pd.to_datetime("2020-01-01"))
