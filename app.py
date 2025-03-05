@@ -9,11 +9,11 @@ from pypfopt.expected_returns import mean_historical_return
 from pypfopt.discrete_allocation import DiscreteAllocation
 
 # ---- APPLICATION UI ----
-st.title("📈 SIP Optimizer Apps")
+st.title("📈 SI Portfolio Optimizer Apps")
 st.write("Analyze and Optimize your Sustainable Investment Portfolio.")
 
 # Input ETF ticker list
-ticker_input = st.text_input("Enter your sustainable investment fund (stock or ETF) tickers (separate with commas, min 1, max 5)", "ESGU, SUSA, ESG, VSGX")
+ticker_input = st.text_input("Enter your sustainable investment fund (Stock/ETF/Index) tickers. (separate with commas, min 1, max 5)", "ESGU, SUSA, ESG, VSGX")
 tickers = [ticker.strip().upper() for ticker in ticker_input.split(",") if ticker.strip()]
 
 # Validate ticker count
