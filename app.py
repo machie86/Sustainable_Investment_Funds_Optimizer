@@ -31,56 +31,70 @@ else:
     analyze_button = st.button("Optimize Portfolio")
 
     if analyze_button:
-        st.info("📡 Fetching stock price data...")
-        
-        # ---- FETCH DATA FROM YFINANCE ----
-        data = yf.download(tickers, start=start_date.strftime('%Y-%m-%d'), end=end_date.strftime('%Y-%m-%d'))["Close"]
-        data = pd.DataFrame(data)
-        
-        # Check if any data is missing
-        missing_values = data.isnull().sum().sum()
-        if missing_values > 0:
-            st.warning(f"⚠️ Warning: {missing_values} missing values detected. Cleaning data...")
-        
-        # Drop missing values
-        data_cleaned = data.dropna()
-        
-        # Validate if enough data exists
-        if data_cleaned.empty:
-            st.error("❌ Error: No valid data available after cleaning. Try selecting a different date range or tickers.")
+        if len(tickers) == 0:
+            st.error("Select at least one investment fund!")
         else:
-            # ---- PORTFOLIO OPTIMIZATION ----
-            mu = mean_historical_return(data_cleaned)
-            S = CovarianceShrinkage(data_cleaned).ledoit_wolf()
-            ef = EfficientFrontier(mu, S)
-            raw_weights = ef.max_sharpe()
-            cleaned_weights = ef.clean_weights()
+            st.info("📡 Fetching stock price data...")
+            
+            # ---- FETCH DATA FROM YFINANCE ----
+            data = yf.download(tickers, start=start_date.strftime('%Y-%m-%d'), end=end_date.strftime('%Y-%m-%d'))["Close"]
+            data = pd.DataFrame(data)
 
-            # ---- DISPLAY RESULTS ----
-            st.subheader("📊 Optimized Portfolio Allocation")
-            st.write("Here is the optimal portfolio allocation:")
-            weight_df = pd.DataFrame(list(cleaned_weights.items()), columns=["ETF", "Weight"])
-            st.dataframe(weight_df)
+            # ---- HANDLE MISSING VALUES ----
+            st.info("🧹 Cleaning data...")
+            missing_values = data.isnull().sum()
+            st.write("Missing Values per Column:")
+            st.write(missing_values)
 
-            # ---- PORTFOLIO PERFORMANCE ----
-            expected_return, volatility, sharpe_ratio = ef.portfolio_performance()
-            st.write(f"✅ **Expected Annual Return:** {expected_return:.2%}")
-            st.write(f"✅ **Annual Volatility:** {volatility:.2%}")
-            st.write(f"✅ **Sharpe Ratio:** {sharpe_ratio:.2f}")
+            # Mengisi missing value dengan forward fill
+            data_filled = data.ffill()
 
-            # ---- DISCRETE ALLOCATION ----
-            latest_prices = data_cleaned.iloc[-1]
-            da = DiscreteAllocation(cleaned_weights, latest_prices, total_portfolio_value=portfolio_value)
-            allocation, leftover = da.greedy_portfolio()
+            # Periksa apakah masih ada missing value
+            if data_filled.isnull().sum().sum() > 0:
+                st.warning("Warning: There are still missing values after filling.")
+            else:
+                st.success("No missing values after filling.")
 
-            st.subheader("🛠 Recommended Shares to Buy")
-            alloc_df = pd.DataFrame(list(allocation.items()), columns=["ETF", "Shares"])
-            st.dataframe(alloc_df)
+            # Periksa apakah data_filled kosong
+            if data_filled.empty:
+                st.error("Error: The filled data is empty. Please check your tickers or adjust the date range.")
+            else:
+                st.success("Data is ready for further processing.")
 
-            st.write(f"💰 **Remaining Cash:** ${leftover:.2f}")
+                # ---- PORTFOLIO OPTIMIZATION ----
+                st.info("🔧 Optimizing portfolio...")
+                mu = mean_historical_return(data_filled)
+                S = CovarianceShrinkage(data_filled).ledoit_wolf()
+                ef = EfficientFrontier(mu, S)
+                raw_weights = ef.max_sharpe()
+                cleaned_weights = ef.clean_weights()
 
-            # ---- VISUALIZATION: PIE CHART ----
-            fig, ax = plt.subplots()
-            ax.pie(cleaned_weights.values(), labels=cleaned_weights.keys(), autopct="%1.1f%%", startangle=140)
-            ax.set_title("Portfolio Allocation")
-            st.pyplot(fig)
+                # ---- DISPLAY RESULTS ----
+                st.subheader("📊 Optimized Portfolio Allocation")
+                st.write("Here is the optimal portfolio allocation:")
+                weight_df = pd.DataFrame(list(cleaned_weights.items()), columns=["ETF", "Weight"])
+                st.dataframe(weight_df)
+
+                # ---- PORTFOLIO PERFORMANCE ----
+                expected_return, volatility, sharpe_ratio = ef.portfolio_performance()
+                st.write(f"✅ **Expected Annual Return:** {expected_return:.2%}")
+                st.write(f"✅ **Annual Volatility:** {volatility:.2%}")
+                st.write(f"✅ **Sharpe Ratio:** {sharpe_ratio:.2f}")
+
+                # ---- DISCRETE ALLOCATION ----
+                latest_prices = data_filled.iloc[-1]
+                da = DiscreteAllocation(cleaned_weights, latest_prices, total_portfolio_value=portfolio_value)
+                allocation, leftover = da.greedy_portfolio()
+
+                st.subheader("🛠 Recommended Shares to Buy")
+                alloc_df = pd.DataFrame(list(allocation.items()), columns=["ETF", "Shares"])
+                st.dataframe(alloc_df)
+
+                st.write(f"💰 **Remaining Cash:** ${leftover:.2f}")
+
+                # ---- VISUALIZATION: PIE CHART ----
+                st.subheader("📊 Portfolio Allocation Pie Chart")
+                fig, ax = plt.subplots()
+                ax.pie(cleaned_weights.values(), labels=cleaned_weights.keys(), autopct="%1.1f%%", startangle=140)
+                ax.set_title("Portfolio Allocation")
+                st.pyplot(fig)
