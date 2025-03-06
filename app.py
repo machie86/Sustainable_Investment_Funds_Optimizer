@@ -31,16 +31,24 @@ else:
     analyze_button = st.button("Optimize Portfolio")
 
     if analyze_button:
-        if len(tickers) == 0:
-            st.error("Select at least one investment fund!")
+        st.info("📡 Fetching stock price data...")
+        
+        # ---- FETCH DATA FROM YFINANCE ----
+        data = yf.download(tickers, start=start_date.strftime('%Y-%m-%d'), end=end_date.strftime('%Y-%m-%d'))["Close"]
+        data = pd.DataFrame(data)
+        
+        # Check if any data is missing
+        missing_values = data.isnull().sum().sum()
+        if missing_values > 0:
+            st.warning(f"⚠️ Warning: {missing_values} missing values detected. Cleaning data...")
+        
+        # Drop missing values
+        data_cleaned = data.dropna()
+        
+        # Validate if enough data exists
+        if data_cleaned.empty:
+            st.error("❌ Error: No valid data available after cleaning. Try selecting a different date range or tickers.")
         else:
-            st.info("📡 Fetching stock price data...")
-            
-            # ---- FETCH DATA FROM YFINANCE ----
-            data = yf.download(tickers, start=start_date.strftime('%Y-%m-%d'), end=end_date.strftime('%Y-%m-%d'))["Close"]
-            data = pd.DataFrame(data)
-            data_cleaned = data.dropna()
-
             # ---- PORTFOLIO OPTIMIZATION ----
             mu = mean_historical_return(data_cleaned)
             S = CovarianceShrinkage(data_cleaned).ledoit_wolf()
@@ -61,7 +69,7 @@ else:
             st.write(f"✅ **Sharpe Ratio:** {sharpe_ratio:.2f}")
 
             # ---- DISCRETE ALLOCATION ----
-            latest_prices = data.iloc[-1]
+            latest_prices = data_cleaned.iloc[-1]
             da = DiscreteAllocation(cleaned_weights, latest_prices, total_portfolio_value=portfolio_value)
             allocation, leftover = da.greedy_portfolio()
 
