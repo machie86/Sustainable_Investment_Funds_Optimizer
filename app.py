@@ -58,7 +58,7 @@ else:
             # Periksa apakah data_filled kosong
             if data_filled.empty:
                 st.error("Error: The filled data is empty. Please check your tickers or adjust the date range.")
-                return  # Hentikan proses jika data kosong
+                st.stop()  # Hentikan aplikasi jika data kosong
             else:
                 st.success("Data is ready for further processing.")
 
